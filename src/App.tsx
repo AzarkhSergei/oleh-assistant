@@ -12,6 +12,13 @@ import PhrasesPage from './pages/PhrasesPage';
 import GuideStepPage from './pages/GuideStepPage';
 import LoginRegisterPage from './pages/LoginRegisterPage'
 import AccountPage from './pages/AccountPage';
+import ShoppingPage from "./pages/phrases/ShoppingPage";
+import DoctorPage from "./pages/phrases/DoctorPage";
+import TransportPage from "./pages/phrases/TransportPage";
+import HousingPage from "./pages/phrases/HousingPage";
+import JobPage from "./pages/phrases/JobPage";
+import EverydayPage from "./pages/phrases/EverydayPage";
+import PublicPage from "./pages/phrases/PublicPage";
 
 
 
@@ -31,6 +38,14 @@ function App() {
             <Route path="/phrases" element={<PhrasesPage />} />
             <Route path="/auth" element={<LoginRegisterPage />} />
             <Route path="/account" element={<AccountPage />} />
+            <Route path="/phrases" element={<PhrasesPage />} />
+            <Route path="/phrases/store" element={<ShoppingPage />} />
+            <Route path="/phrases/doctor" element={<DoctorPage />} />
+            <Route path="/phrases/transport" element={<TransportPage />} />
+            <Route path="/phrases/housing" element={<HousingPage />} />
+            <Route path="/phrases/job" element={<JobPage />} />
+            <Route path="/phrases/everyday" element={<EverydayPage />} />
+            <Route path="/phrases/public" element={<PublicPage />} />
           </Routes>
         </main>
         <Footer />
