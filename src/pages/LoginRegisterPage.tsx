@@ -9,13 +9,12 @@ export default function LoginRegisterPage() {
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
 
-  const validatePassword = (password: string) => {
-    return (
-      password.length >= 8 &&
-      /[A-Z]/.test(password) &&
-      /[0-9]/.test(password)
-    );
-  };
+  // Парольные условия
+  const isLength = password.length >= 8;
+  const hasUpper = /[A-Z]/.test(password);
+  const hasDigit = /[0-9]/.test(password);
+
+  const validatePassword = (password: string) => isLength && hasUpper && hasDigit;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +43,7 @@ export default function LoginRegisterPage() {
         setMessage(error.message);
       } else {
         setMessage('Вы успешно вошли!');
-        setTimeout(() => navigate('/'), 1000); // редирект на главную через 1 сек
+        setTimeout(() => navigate('/'), 1000);
       }
     }
   };
@@ -70,11 +69,18 @@ export default function LoginRegisterPage() {
           className="w-full border px-3 py-2 rounded"
         />
 
+        {/* Подсказки только на регистрации */}
         {!isLogin && (
-          <ul className="text-sm text-gray-600 list-disc list-inside">
-            <li>Минимум 8 символов</li>
-            <li>Хотя бы одна заглавная буква</li>
-            <li>Хотя бы одна цифра</li>
+          <ul className="text-sm list-disc list-inside">
+            <li className={isLength ? "text-green-600 transition-colors" : "text-red-600 transition-colors"}>
+              Минимум 8 символов
+            </li>
+            <li className={hasUpper ? "text-green-600 transition-colors" : "text-red-600 transition-colors"}>
+              Хотя бы одна заглавная буква
+            </li>
+            <li className={hasDigit ? "text-green-600 transition-colors" : "text-red-600 transition-colors"}>
+              Хотя бы одна цифра
+            </li>
           </ul>
         )}
 
@@ -90,6 +96,7 @@ export default function LoginRegisterPage() {
           onClick={() => {
             setIsLogin(!isLogin);
             setMessage('');
+            setPassword('');
           }}
           className="text-primary underline"
         >
@@ -100,7 +107,7 @@ export default function LoginRegisterPage() {
       {message && (
         <p
           className={`mt-4 text-center text-sm ${
-            message.includes('успешно') ? 'text-green-600' : 'text-red-600'
+            message.includes('успешна') || message.includes('вошли') ? 'text-green-600' : 'text-red-600'
           }`}
         >
           {message}

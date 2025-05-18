@@ -51,7 +51,9 @@ export default function Header() {
   return (
     <header className="bg-white shadow-md">
       <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-primary">Oleh Assistant</h1>
+        <Link to="/" className="text-2xl font-bold text-primary rounded transition">
+          Oleh Assistant
+        </Link>
 
         {/* Desktop nav */}
         <nav className="hidden md:flex space-x-4 text-sm items-center">

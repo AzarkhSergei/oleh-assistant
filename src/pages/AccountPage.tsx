@@ -14,13 +14,15 @@ export default function AccountPage() {
     });
   }, []);
 
-  const validatePassword = (password: string) => {
-    return (
-      password.length >= 8 &&
-      /[A-Z]/.test(password) &&
-      /[0-9]/.test(password)
-    );
-  };
+  // Подсказки по требованиям пароля
+  const isLength = newPassword.length >= 8;
+  const hasUpper = /[A-Z]/.test(newPassword);
+  const hasDigit = /[0-9]/.test(newPassword);
+  const notSameAsCurrent = newPassword && newPassword !== currentPassword;
+  const passwordsMatch = newPassword && confirmPassword && newPassword === confirmPassword;
+
+  const validatePassword = (password: string) =>
+    password.length >= 8 && /[A-Z]/.test(password) && /[0-9]/.test(password);
 
   const handleChangePassword = async () => {
     setMessage('');
@@ -40,6 +42,7 @@ export default function AccountPage() {
       return;
     }
 
+    // Проверка текущего пароля (Supabase требует аутентификацию)
     const { error: loginError } = await supabase.auth.signInWithPassword({
       email: user.email,
       password: currentPassword,
@@ -94,11 +97,12 @@ export default function AccountPage() {
           className="w-full border px-3 py-2 rounded"
         />
 
-        <ul className="text-sm text-gray-600 list-disc list-inside">
-          <li>Минимум 8 символов</li>
-          <li>Хотя бы одна заглавная буква</li>
-          <li>Хотя бы одна цифра</li>
-          <li>Не совпадает с текущим паролем</li>
+        <ul className="text-sm list-disc list-inside mb-2">
+          <li className={isLength ? "text-green-600" : "text-red-600"}>Минимум 8 символов</li>
+          <li className={hasUpper ? "text-green-600" : "text-red-600"}>Хотя бы одна заглавная буква</li>
+          <li className={hasDigit ? "text-green-600" : "text-red-600"}>Хотя бы одна цифра</li>
+          <li className={notSameAsCurrent ? "text-green-600" : "text-red-600"}>Не совпадает с текущим паролем</li>
+          <li className={passwordsMatch ? "text-green-600" : "text-red-600"}>Пароли совпадают</li>
         </ul>
 
         <button
@@ -107,7 +111,15 @@ export default function AccountPage() {
         >
           Сменить пароль
         </button>
-        {message && <p className="mt-2 text-center text-red-600">{message}</p>}
+        {message && (
+          <p
+            className={`mt-2 text-center text-sm ${
+              message.includes('успешно') ? 'text-green-600' : 'text-red-600'
+            }`}
+          >
+            {message}
+          </p>
+        )}
       </div>
     </div>
   );
