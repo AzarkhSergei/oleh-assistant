@@ -37,11 +37,6 @@ Thumbs.db
 .AppleDouble
 .LSOverride
 
-# Supabase
-supabase/migrations/
-.branches
-.temp
-
 # Coverage
 coverage/
 
