@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
+import ReCAPTCHA from 'react-google-recaptcha';
 
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 5 * 60 * 1000; // 5 минут
@@ -10,12 +11,19 @@ export default function LoginRegisterPage() {
   const [password, setPassword] = useState('');
   const [isLogin, setIsLogin] = useState(true);
   const [message, setMessage] = useState('');
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+
   const navigate = useNavigate();
+  const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
 
   const isLength = password.length >= 8;
   const hasUpper = /[A-Z]/.test(password);
   const hasDigit = /[0-9]/.test(password);
   const validatePassword = (password: string) => isLength && hasUpper && hasDigit;
+
+  const handleCaptchaChange = (token: string | null) => {
+    setCaptchaToken(token);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,6 +31,11 @@ export default function LoginRegisterPage() {
 
     if (!email || !password) {
       setMessage('Введите email и пароль.');
+      return;
+    }
+
+    if (!captchaToken) {
+      setMessage('Пожалуйста, подтвердите, что вы не робот.');
       return;
     }
 
@@ -65,7 +78,6 @@ export default function LoginRegisterPage() {
         return;
       }
 
-      // Успешный вход — сброс счётчиков
       localStorage.removeItem('loginAttempts');
       localStorage.removeItem('lockoutTime');
       setMessage('Вы успешно вошли!');
@@ -102,6 +114,8 @@ export default function LoginRegisterPage() {
           </ul>
         )}
 
+        <ReCAPTCHA sitekey={siteKey} onChange={handleCaptchaChange} />
+
         <button type="submit" className="w-full bg-primary text-white py-2 rounded">
           {isLogin ? 'Войти' : 'Зарегистрироваться'}
         </button>
@@ -115,6 +129,7 @@ export default function LoginRegisterPage() {
             setIsLogin(!isLogin);
             setMessage('');
             setPassword('');
+            setCaptchaToken(null);
           }}
           className="text-primary underline"
         >

@@ -22,6 +22,8 @@ Thumbs.db
 # Env
 .env
 .env.*.local
+.env.keys
+.env.local
 
 # IDE
 .vscode/
@@ -38,6 +40,18 @@ Thumbs.db
 # Supabase
 supabase/migrations/
 .supabase/
+.branches
+.temp
 
 # Coverage
 coverage/
+
+# Supabase local settings
+.supabase/access-token
+.supabase/config.json
+
+# Supabase secrets (если вдруг есть)
+.supabase/functions/**/secrets.json
+
+# Local build artifacts
+supabase/.output
