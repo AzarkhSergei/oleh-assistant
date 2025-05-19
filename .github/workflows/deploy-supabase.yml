@@ -13,9 +13,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Download Supabase CLI
+      - name: Download Supabase CLI binary
         run: |
-          curl -L https://github.com/supabase/cli/releases/download/v1.163.1/supabase_1.163.1_linux_amd64.tar.gz | tar -xz
+          curl -L https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz -o supabase.tar.gz
+          tar -xzf supabase.tar.gz
+          chmod +x supabase
           sudo mv supabase /usr/local/bin
 
       - name: Deploy validate-captcha function
