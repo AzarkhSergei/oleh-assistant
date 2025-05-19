@@ -13,16 +13,15 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Setup Supabase CLI
+      - name: Download Supabase CLI
         run: |
-          curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-          sudo apt-get install -y nodejs
-          npm install -g supabase
+          curl -L https://github.com/supabase/cli/releases/download/v1.163.1/supabase_1.163.1_linux_amd64.tar.gz | tar -xz
+          sudo mv supabase /usr/local/bin
 
       - name: Deploy validate-captcha function
         env:
-            SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-            RECAPTCHA_SECRET_KEY: ${{ secrets.RECAPTCHA_SECRET_KEY }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          RECAPTCHA_SECRET_KEY: ${{ secrets.RECAPTCHA_SECRET_KEY }}
         run: |
           supabase link --project-ref ajxymcztnprndgiupimi
           supabase functions deploy validate-captcha
