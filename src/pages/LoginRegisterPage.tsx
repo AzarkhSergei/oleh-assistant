@@ -25,6 +25,17 @@ export default function LoginRegisterPage() {
     setCaptchaToken(token);
   };
 
+  const verifyCaptchaOnServer = async (captchaToken: string) => {
+    const res = await fetch('https://ajxymcztnprndgiupimi.supabase.co/functions/v1/validate-captcha', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: captchaToken }),
+    });
+
+    const data = await res.json();
+    return data.success;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage('');
@@ -36,6 +47,12 @@ export default function LoginRegisterPage() {
 
     if (!captchaToken) {
       setMessage('Пожалуйста, подтвердите, что вы не робот.');
+      return;
+    }
+
+    const isHuman = await verifyCaptchaOnServer(captchaToken);
+    if (!isHuman) {
+      setMessage('Проверка reCAPTCHA не пройдена.');
       return;
     }
 
