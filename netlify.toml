@@ -1,7 +1,13 @@
 [[headers]]
   for = "/"
   [headers.values]
-    Content-Security-Policy = "default-src 'self'; connect-src 'self' https://*.supabase.co; script-src 'self'; style-src 'self' 'unsafe-inline';"
+    Content-Security-Policy = """
+      default-src 'self';
+      connect-src 'self' https://*.supabase.co;
+      script-src 'self' https://www.google.com https://www.gstatic.com;
+      style-src 'self' 'unsafe-inline';
+      frame-src https://www.google.com;
+    """
     Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
     X-Content-Type-Options = "nosniff"
     X-Frame-Options = "DENY"
