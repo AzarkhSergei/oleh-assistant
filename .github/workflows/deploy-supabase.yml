@@ -22,6 +22,7 @@ jobs:
           sudo mv supabase /usr/local/bin
 
       - name: Deploy validate-captcha function
+        working-directory: ./ # 👈 заставляем работать из корня репозитория
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           RECAPTCHA_SECRET_KEY: ${{ secrets.RECAPTCHA_SECRET_KEY }}
