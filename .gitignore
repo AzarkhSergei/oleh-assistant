@@ -39,7 +39,7 @@ Thumbs.db
 
 # Supabase
 supabase/migrations/
-.supabase/
+!supabase/functions/
 .branches
 .temp
 
