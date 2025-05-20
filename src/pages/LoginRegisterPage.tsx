@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import ReCAPTCHA from 'react-google-recaptcha';
 
 const MAX_ATTEMPTS = 5;
-const LOCKOUT_DURATION_MS = 5 * 60 * 1000; // 5 минут
+const LOCKOUT_DURATION_MS = 5 * 60 * 1000; // 5 минут!
 
 export default function LoginRegisterPage() {
   const [email, setEmail] = useState('');
