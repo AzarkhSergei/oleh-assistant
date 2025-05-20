@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import ReCAPTCHA from 'react-google-recaptcha';
 
 const MAX_ATTEMPTS = 5;
-const LOCKOUT_DURATION_MS = 5 * 60 * 1000; // 5 минут!
+const LOCKOUT_DURATION_MS = 5 * 60 * 1000; // 5 минут
 
 export default function LoginRegisterPage() {
   const [email, setEmail] = useState('');
@@ -13,6 +13,7 @@ export default function LoginRegisterPage() {
   const [message, setMessage] = useState('');
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
+  const recaptchaRef = useRef<ReCAPTCHA | null>(null);
   const navigate = useNavigate();
   const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
 
@@ -53,6 +54,8 @@ export default function LoginRegisterPage() {
     const isHuman = await verifyCaptchaOnServer(captchaToken);
     if (!isHuman) {
       setMessage('Проверка reCAPTCHA не пройдена.');
+      recaptchaRef.current?.reset();
+      setCaptchaToken(null);
       return;
     }
 
@@ -100,6 +103,10 @@ export default function LoginRegisterPage() {
       setMessage('Вы успешно вошли!');
       setTimeout(() => navigate('/'), 1000);
     }
+
+    // сбросить капчу после отправки
+    recaptchaRef.current?.reset();
+    setCaptchaToken(null);
   };
 
   return (
@@ -131,7 +138,11 @@ export default function LoginRegisterPage() {
           </ul>
         )}
 
-        <ReCAPTCHA sitekey={siteKey} onChange={handleCaptchaChange} />
+        <ReCAPTCHA
+          ref={recaptchaRef}
+          sitekey={siteKey}
+          onChange={handleCaptchaChange}
+        />
 
         <button type="submit" className="w-full bg-primary text-white py-2 rounded">
           {isLogin ? 'Войти' : 'Зарегистрироваться'}
@@ -147,6 +158,7 @@ export default function LoginRegisterPage() {
             setMessage('');
             setPassword('');
             setCaptchaToken(null);
+            recaptchaRef.current?.reset(); // ✅ Сбросить капчу при смене режима
           }}
           className="text-primary underline"
         >
