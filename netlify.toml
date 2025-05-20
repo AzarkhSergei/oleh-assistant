@@ -3,7 +3,7 @@
   [headers.values]
     Content-Security-Policy = """
       default-src 'self';
-      connect-src 'self' https://*.supabase.co;
+      connect-src 'self' https://*.supabase.co https://www.google.com https://www.gstatic.com;
       script-src 'self' https://www.google.com https://www.gstatic.com;
       style-src 'self' 'unsafe-inline';
       frame-src https://www.google.com;
