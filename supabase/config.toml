@@ -317,3 +317,11 @@ entrypoint = "./functions/validate-captcha/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/validate-captcha/*.html" ]
+[auth.email.smtp]
+enabled = true
+host = "smtp-relay.sendinblue.com"
+port = 587
+user = "env(SMTP_USER)"
+pass = "env(SMTP_PASS)"
+admin_email = "env(SMTP_USER)"
+sender_name = "Oleh Assistant"
