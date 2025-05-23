@@ -37,6 +37,16 @@ export default function LoginRegisterPage() {
     return data.success;
   };
 
+  const logAuthEvent = async (
+    event: 'register_success' | 'login_success' | 'login_fail'
+  ) => {
+    try {
+      await supabase.from('auth_logs').insert([{ email, event_type: event }]);
+    } catch (e) {
+      console.error('Ошибка логирования:', e);
+    }
+  };
+
   const getClientIp = async () => {
     try {
       const res = await fetch("https://api.ipify.org?format=json");
@@ -79,6 +89,7 @@ export default function LoginRegisterPage() {
       if (error) {
         setMessage(error.message);
       } else {
+        await logAuthEvent('register_success');
         setMessage('Регистрация успешна! Проверьте почту для подтверждения.');
       }
     } else {
@@ -104,10 +115,12 @@ export default function LoginRegisterPage() {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
 
       if (error) {
+        await logAuthEvent('login_fail');
         setMessage('Неверный логин или пароль.');
         return;
       }
 
+      await logAuthEvent('login_success');
       setMessage('Вы успешно вошли!');
       setTimeout(() => navigate('/'), 1000);
     }
