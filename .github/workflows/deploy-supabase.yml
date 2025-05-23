@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy:
-    name: Deploy function to Supabase
+    name: Deploy functions to Supabase
     runs-on: ubuntu-latest
 
     steps:
@@ -22,11 +22,24 @@ jobs:
           chmod +x supabase
           sudo mv supabase /usr/local/bin
 
+      - name: Link Supabase project
+        working-directory: ./repo
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase link --project-ref ajxymcztnprndgiupimi
+
       - name: Deploy validate-captcha function
         working-directory: ./repo
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           RECAPTCHA_SECRET_KEY: ${{ secrets.RECAPTCHA_SECRET_KEY }}
         run: |
-          supabase link --project-ref ajxymcztnprndgiupimi
           supabase functions deploy validate-captcha
+
+      - name: Deploy rate-limit-login function
+        working-directory: ./repo
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase functions deploy rate-limit-login

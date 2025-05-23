@@ -37,6 +37,16 @@ export default function LoginRegisterPage() {
     return data.success;
   };
 
+  const getClientIp = async () => {
+    try {
+      const res = await fetch("https://api.ipify.org?format=json");
+      const data = await res.json();
+      return data.ip;
+    } catch {
+      return "unknown";
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage('');
@@ -72,39 +82,36 @@ export default function LoginRegisterPage() {
         setMessage('Регистрация успешна! Проверьте почту для подтверждения.');
       }
     } else {
-      const now = Date.now();
-      const savedLock = localStorage.getItem('lockoutTime');
-      const savedAttempts = localStorage.getItem('loginAttempts');
+      try {
+        const clientIp = await getClientIp();
 
-      if (savedLock && Number(savedLock) > now) {
-        const secondsLeft = Math.ceil((Number(savedLock) - now) / 1000);
-        setMessage(`Слишком много попыток. Повторите через ${secondsLeft} сек.`);
+        const res = await fetch('https://ajxymcztnprndgiupimi.supabase.co/functions/v1/rate-limit-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, ip: clientIp }),
+        });
+
+        if (res.status === 429) {
+          setMessage('Слишком много попыток. Подождите 5 минут.');
+          return;
+        }
+      } catch (error) {
+        console.error('Ошибка rate-limit запроса:', error);
+        setMessage('Ошибка проверки безопасности. Попробуйте позже.');
         return;
       }
 
       const { error } = await supabase.auth.signInWithPassword({ email, password });
 
       if (error) {
-        const attempts = savedAttempts ? Number(savedAttempts) + 1 : 1;
-        localStorage.setItem('loginAttempts', attempts.toString());
-
-        if (attempts >= MAX_ATTEMPTS) {
-          const lockUntil = now + LOCKOUT_DURATION_MS;
-          localStorage.setItem('lockoutTime', lockUntil.toString());
-          setMessage('Слишком много неудачных попыток. Блокировка на 5 минут.');
-        } else {
-          setMessage(`Неверный логин или пароль. Осталось попыток: ${MAX_ATTEMPTS - attempts}`);
-        }
+        setMessage('Неверный логин или пароль.');
         return;
       }
 
-      localStorage.removeItem('loginAttempts');
-      localStorage.removeItem('lockoutTime');
       setMessage('Вы успешно вошли!');
       setTimeout(() => navigate('/'), 1000);
     }
 
-    // сбросить капчу после отправки
     recaptchaRef.current?.reset();
     setCaptchaToken(null);
   };
@@ -158,7 +165,7 @@ export default function LoginRegisterPage() {
             setMessage('');
             setPassword('');
             setCaptchaToken(null);
-            recaptchaRef.current?.reset(); // ✅ Сбросить капчу при смене режима
+            recaptchaRef.current?.reset();
           }}
           className="text-primary underline"
         >
