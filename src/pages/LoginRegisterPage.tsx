@@ -4,10 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import ReCAPTCHA from 'react-google-recaptcha';
 
 const MAX_ATTEMPTS = 5;
-const LOCKOUT_DURATION_MS = 5 * 60 * 1000; // 5 минут
+const LOCKOUT_DURATION_MS = 5 * 60 * 1000;
 
 export default function LoginRegisterPage() {
   const [email, setEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
   const [password, setPassword] = useState('');
   const [isLogin, setIsLogin] = useState(true);
   const [message, setMessage] = useState('');
@@ -22,6 +23,37 @@ export default function LoginRegisterPage() {
   const hasDigit = /[0-9]/.test(password);
   const validatePassword = (password: string) => isLength && hasUpper && hasDigit;
 
+  const allowedDomains = [
+    'gmail.com',
+    'icloud.com',
+    'outlook.com',
+    'hotmail.com',
+    'yahoo.com',
+    'mail.ru',
+    'inbox.ru',
+    'list.ru',
+    'bk.ru',
+    'yandex.ru',
+    'proton.me',
+  ];
+
+  const validateEmailLive = (email: string) => {
+    const domain = email.split('@')[1]?.toLowerCase();
+    const gmailPattern = /^[a-zA-Z0-9](\.?[a-zA-Z0-9_-])*@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  
+    if (email.trim() === '') {
+      setEmailError('Введите email.');
+    } else if (!/^[\x00-\x7F]+$/.test(email)) {
+      setEmailError('Email не должен содержать русские буквы или эмодзи.');
+    } else if (!gmailPattern.test(email)) {
+      setEmailError('Недопустимый email формат.');
+    } else if (domain && !allowedDomains.includes(domain)) {
+      setEmailError('Email-домен не поддерживается.');
+    } else {
+      setEmailError('');
+    }
+  };  
+
   const handleCaptchaChange = (token: string | null) => {
     setCaptchaToken(token);
   };
@@ -32,29 +64,8 @@ export default function LoginRegisterPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token: captchaToken }),
     });
-
     const data = await res.json();
     return data.success;
-  };
-
-  const logAuthEvent = async (
-    event: 'register_success' | 'login_success' | 'login_fail'
-  ) => {
-    try {
-      await supabase.from('auth_logs').insert([{ email, event_type: event }]);
-    } catch (e) {
-      console.error('Ошибка логирования:', e);
-    }
-  };
-
-  const getClientIp = async () => {
-    try {
-      const res = await fetch("https://api.ipify.org?format=json");
-      const data = await res.json();
-      return data.ip;
-    } catch {
-      return "unknown";
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,6 +74,11 @@ export default function LoginRegisterPage() {
 
     if (!email || !password) {
       setMessage('Введите email и пароль.');
+      return;
+    }
+
+    if (emailError) {
+      setMessage('Email некорректен.');
       return;
     }
 
@@ -86,43 +102,15 @@ export default function LoginRegisterPage() {
       }
 
       const { error } = await supabase.auth.signUp({ email, password });
-      if (error) {
-        setMessage(error.message);
-      } else {
-        await logAuthEvent('register_success');
-        setMessage('Регистрация успешна! Проверьте почту для подтверждения.');
-      }
+      setMessage(error ? error.message : 'Регистрация успешна! Проверьте почту.');
     } else {
-      try {
-        const clientIp = await getClientIp();
-
-        const res = await fetch('https://ajxymcztnprndgiupimi.supabase.co/functions/v1/rate-limit-login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, ip: clientIp }),
-        });
-
-        if (res.status === 429) {
-          setMessage('Слишком много попыток. Подождите 5 минут.');
-          return;
-        }
-      } catch (error) {
-        console.error('Ошибка rate-limit запроса:', error);
-        setMessage('Ошибка проверки безопасности. Попробуйте позже.');
-        return;
-      }
-
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-
       if (error) {
-        await logAuthEvent('login_fail');
         setMessage('Неверный логин или пароль.');
-        return;
+      } else {
+        setMessage('Вы успешно вошли!');
+        setTimeout(() => navigate('/'), 1000);
       }
-
-      await logAuthEvent('login_success');
-      setMessage('Вы успешно вошли!');
-      setTimeout(() => navigate('/'), 1000);
     }
 
     recaptchaRef.current?.reset();
@@ -132,21 +120,31 @@ export default function LoginRegisterPage() {
   return (
     <div className="max-w-md mx-auto mt-10 p-6 bg-white shadow rounded">
       <h2 className="text-2xl font-bold mb-4">{isLogin ? 'Вход' : 'Регистрация'}</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
         <input
           type="email"
           placeholder="Email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => {
+            const val = e.target.value;
+            setEmail(val);
+            validateEmailLive(val);
+          }}
           required
+          autoComplete="off"
           className="w-full border px-3 py-2 rounded"
         />
+        {emailError && (
+          <p className="text-red-600 text-sm mt-1">{emailError}</p>
+        )}
+
         <input
           type="password"
           placeholder="Пароль"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
+          autoComplete="new-password"
           className="w-full border px-3 py-2 rounded"
         />
 
@@ -164,7 +162,11 @@ export default function LoginRegisterPage() {
           onChange={handleCaptchaChange}
         />
 
-        <button type="submit" className="w-full bg-primary text-white py-2 rounded">
+        <button
+          type="submit"
+          className="w-full bg-primary text-white py-2 rounded disabled:opacity-50"
+          disabled={!!emailError}
+        >
           {isLogin ? 'Войти' : 'Зарегистрироваться'}
         </button>
       </form>
@@ -179,6 +181,7 @@ export default function LoginRegisterPage() {
             setPassword('');
             setCaptchaToken(null);
             recaptchaRef.current?.reset();
+            validateEmailLive(email);
           }}
           className="text-primary underline"
         >
