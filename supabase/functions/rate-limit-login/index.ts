@@ -19,11 +19,12 @@ serve(async (req) => {
   }
 
   try {
-    const { email, successful } = await req.json();
+    const body = await req.json();
+    const { email, successful, user_id, checkOnly } = body;
     const ip = req.headers.get("x-forwarded-for") ?? "0.0.0.0";
 
-    if (!email || typeof successful !== "boolean") {
-      return withCorsHeaders(JSON.stringify({ error: "Missing required fields" }), 400);
+    if (!email) {
+      return withCorsHeaders(JSON.stringify({ error: "Missing email" }), 400);
     }
 
     const supabase = createClient(
@@ -31,34 +32,42 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    if (!successful) {
-      // Проверка количества неудачных попыток за последние 5 минут
-      const now = new Date();
-      const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+    // Проверка лимита
+    const now = new Date();
+    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
 
-      const { count, error: selectError } = await supabase
-        .from("login_attempts")
-        .select("*", { count: "exact", head: true })
-        .eq("email", email)
-        .eq("successful", false)
-        .gte("attempted_at", fiveMinutesAgo.toISOString());
+    const { count, error: countError } = await supabase
+      .from("login_attempts")
+      .select("*", { count: "exact", head: true })
+      .eq("email", email)
+      .eq("successful", false)
+      .gte("attempted_at", fiveMinutesAgo.toISOString());
 
-      if (selectError) {
-        console.error("Ошибка при подсчёте попыток:", selectError.message);
-        return withCorsHeaders(JSON.stringify({ error: "select error" }), 500);
-      }
-
-      if ((count ?? 0) >= 5) {
-        return withCorsHeaders(JSON.stringify({ error: "Too many attempts" }), 429);
-      }
+    if (countError) {
+      console.error("Ошибка при подсчёте попыток:", countError.message);
+      return withCorsHeaders(JSON.stringify({ error: "select error" }), 500);
     }
 
-    // Вставка новой попытки (успешной или нет)
+    if ((count ?? 0) >= 5) {
+      return withCorsHeaders(JSON.stringify({ error: "Too many attempts" }), 429);
+    }
+
+    // Только проверка — не пишем в таблицу
+    if (checkOnly) {
+      return withCorsHeaders(JSON.stringify({ allowed: true }), 200);
+    }
+
+    // Проверка перед записью
+    if (typeof successful !== "boolean") {
+      return withCorsHeaders(JSON.stringify({ error: "Missing 'successful' boolean" }), 400);
+    }
+
     const { error: insertError } = await supabase.from("login_attempts").insert([
       {
         email,
         ip_address: ip,
         successful,
+        user_id: user_id ?? null,
       },
     ]);
 

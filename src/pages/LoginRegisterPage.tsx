@@ -93,27 +93,28 @@ export default function LoginRegisterPage() {
       setMessage(error ? error.message : 'Регистрация успешна! Проверьте почту.');
     } else {
       try {
-        // 1. Проверка лимита (до входа)
-        const preRes = await fetch('https://ajxymcztnprndgiupimi.functions.supabase.co/rate-limit-login', {
+        // Проверка лимита без записи
+        const limitRes = await fetch('https://ajxymcztnprndgiupimi.functions.supabase.co/rate-limit-login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           },
-          body: JSON.stringify({ email, successful: false }),
+          body: JSON.stringify({ email, checkOnly: true }),
         });
 
-        const preResult = await preRes.json();
-        if (!preRes.ok && preRes.status === 429) {
-          setMessage(preResult.error || 'Слишком много попыток. Попробуйте позже.');
+        const limitData = await limitRes.json();
+        if (!limitRes.ok && limitRes.status === 429) {
+          setMessage(limitData.error || 'Слишком много попыток. Попробуйте позже.');
           return;
         }
 
-        // 2. Попытка входа
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        // Попытка входа
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const user_id = data?.session?.user?.id ?? null;
 
-        // 3. Фиксация результата
+        // Фиксация попытки
         await fetch('https://ajxymcztnprndgiupimi.functions.supabase.co/rate-limit-login', {
           method: 'POST',
           headers: {
@@ -121,10 +122,10 @@ export default function LoginRegisterPage() {
             'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           },
-          body: JSON.stringify({ email, successful: !error }),
+          body: JSON.stringify({ email, successful: !error, user_id }),
         });
 
-        if (error) {
+        if (error || !user_id) {
           setMessage('Неверный логин или пароль.');
         } else {
           setMessage('Вы успешно вошли!');
