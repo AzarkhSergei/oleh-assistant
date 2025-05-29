@@ -12,13 +12,15 @@ import {
   LogIn,
   LogOut,
   User,
+  ShieldCheck,
 } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
+import { checkIfUserIsAdmin } from '../../utils/checkAdmin';
 
 const navItems = [
   { to: '/', label: 'Главная', icon: <Home size={16} /> },
   { to: '/guide', label: 'Гид', icon: <BookOpen size={16} /> },
-  { to: '/links', label: 'Ссылки', icon: <LinkIcon size={16} /> },
+  // { to: '/links', label: 'Ссылки', icon: <LinkIcon size={16} /> },
   { to: '/checklists', label: 'Чек-листы', icon: <ListChecks size={16} /> },
   { to: '/contacts', label: 'Контакты', icon: <Contact size={16} /> },
   { to: '/phrases', label: 'Фразы', icon: <MessageSquareText size={16} /> },
@@ -28,23 +30,28 @@ export default function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    const loadUser = async () => {
+      const { data: sessionData } = await supabase.auth.getUser();
+      const uid = sessionData?.user?.id;
+      if (!uid) return;
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
+      setUserId(uid);
 
-    return () => {
-      listener.subscription.unsubscribe();
+      const isAdmin = await checkIfUserIsAdmin(uid);
+      setIsAdmin(isAdmin);
     };
+
+    loadUser();
   }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    setUser(null);
+    setUserId(null);
+    setIsAdmin(false);
     navigate('/');
   };
 
@@ -70,7 +77,16 @@ export default function Header() {
             </Link>
           ))}
 
-          {!user ? (
+          {userId && isAdmin && (
+            <Link to="/admin/reviews" title="Модерация отзывов">
+              <ShieldCheck
+                size={20}
+                className="text-primary hover:scale-110 transition-transform"
+              />
+            </Link>
+          )}
+
+          {!userId ? (
             <Link
               to="/auth"
               className="ml-4 border border-primary text-primary px-3 py-1 rounded hover:bg-primary hover:text-white transition flex items-center gap-1"
@@ -103,57 +119,6 @@ export default function Header() {
           {isOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
       </div>
-
-      {/* Mobile nav */}
-      {isOpen && (
-        <nav className="md:hidden px-4 pb-4 space-y-2">
-          {navItems.map(({ to, label, icon }) => (
-            <Link
-              key={to}
-              to={to}
-              onClick={() => setIsOpen(false)}
-              className={`flex items-center gap-2 py-2 border-b hover:text-primary transition ${
-                location.pathname === to ? 'text-primary font-medium' : 'text-gray-700'
-              }`}
-            >
-              {icon}
-              {label}
-            </Link>
-          ))}
-
-          {!user ? (
-            <Link
-              to="/auth"
-              onClick={() => setIsOpen(false)}
-              className="mt-4 inline-flex items-center gap-2 border border-primary px-3 py-2 text-primary rounded hover:bg-primary hover:text-white transition w-full justify-center"
-            >
-              <LogIn size={16} />
-              Войти
-            </Link>
-          ) : (
-            <div className="space-y-2 mt-4">
-              <Link
-                to="/account"
-                onClick={() => setIsOpen(false)}
-                className="inline-flex items-center gap-2 border border-gray-500 px-3 py-2 text-gray-800 rounded hover:bg-gray-100 transition w-full justify-center"
-              >
-                <User size={16} />
-                Кабинет
-              </Link>
-              <button
-                onClick={() => {
-                  handleLogout();
-                  setIsOpen(false);
-                }}
-                className="inline-flex items-center gap-2 border border-red-500 px-3 py-2 text-red-500 rounded hover:bg-red-500 hover:text-white transition w-full justify-center"
-              >
-                <LogOut size={16} />
-                Выйти
-              </button>
-            </div>
-          )}
-        </nav>
-      )}
     </header>
   );
 }

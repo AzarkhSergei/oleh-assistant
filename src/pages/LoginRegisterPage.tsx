@@ -3,9 +3,6 @@ import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import ReCAPTCHA from 'react-google-recaptcha';
 
-const MAX_ATTEMPTS = 5;
-const LOCKOUT_DURATION_MS = 5 * 60 * 1000;
-
 export default function LoginRegisterPage() {
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
@@ -24,23 +21,14 @@ export default function LoginRegisterPage() {
   const validatePassword = (password: string) => isLength && hasUpper && hasDigit;
 
   const allowedDomains = [
-    'gmail.com',
-    'icloud.com',
-    'outlook.com',
-    'hotmail.com',
-    'yahoo.com',
-    'mail.ru',
-    'inbox.ru',
-    'list.ru',
-    'bk.ru',
-    'yandex.ru',
-    'proton.me',
+    'gmail.com', 'icloud.com', 'outlook.com', 'hotmail.com', 'yahoo.com',
+    'mail.ru', 'inbox.ru', 'list.ru', 'bk.ru', 'yandex.ru', 'proton.me',
   ];
 
   const validateEmailLive = (email: string) => {
     const domain = email.split('@')[1]?.toLowerCase();
     const gmailPattern = /^[a-zA-Z0-9](\.?[a-zA-Z0-9_-])*@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  
+
     if (email.trim() === '') {
       setEmailError('Введите email.');
     } else if (!/^[\x00-\x7F]+$/.test(email)) {
@@ -52,7 +40,7 @@ export default function LoginRegisterPage() {
     } else {
       setEmailError('');
     }
-  };  
+  };
 
   const handleCaptchaChange = (token: string | null) => {
     setCaptchaToken(token);
@@ -104,12 +92,59 @@ export default function LoginRegisterPage() {
       const { error } = await supabase.auth.signUp({ email, password });
       setMessage(error ? error.message : 'Регистрация успешна! Проверьте почту.');
     } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        setMessage('Неверный логин или пароль.');
-      } else {
-        setMessage('Вы успешно вошли!');
-        setTimeout(() => navigate('/'), 1000);
+      try {
+        const ipRes = await fetch("https://api.ipify.org?format=json");
+        const ipData = await ipRes.json();
+        const ip = ipData?.ip ?? "0.0.0.0";
+
+        // Проверка лимита до входа (неудачная попытка)
+        const preRes = await fetch('https://ajxymcztnprndgiupimi.functions.supabase.co/rate-limit-login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            email,
+            ip,
+            successful: false,
+          }),
+        });
+
+        const preResult = await preRes.json();
+        if (!preRes.ok && preRes.status === 429) {
+          setMessage(preResult.error || 'Слишком много попыток. Попробуйте позже.');
+          return;
+        }
+
+        // Попытка входа
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+        // Фиксация результата (успешно или нет)
+        await fetch('https://ajxymcztnprndgiupimi.functions.supabase.co/rate-limit-login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            email,
+            ip,
+            successful: !error,
+          }),
+        });
+
+        if (error) {
+          setMessage('Неверный логин или пароль.');
+        } else {
+          setMessage('Вы успешно вошли!');
+          setTimeout(() => navigate('/'), 1000);
+        }
+      } catch (err) {
+        console.error('Ошибка при логине:', err);
+        setMessage('Ошибка сервера. Попробуйте позже.');
       }
     }
 

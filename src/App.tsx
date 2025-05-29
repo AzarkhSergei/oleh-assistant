@@ -19,6 +19,8 @@ import HousingPage from "./pages/phrases/HousingPage";
 import JobPage from "./pages/phrases/JobPage";
 import EverydayPage from "./pages/phrases/EverydayPage";
 import PublicPage from "./pages/phrases/PublicPage";
+import AdminReviews from './pages/AdminReviews';
+import LeaveReviewPage from './pages/LeaveReviewPage';
 
 
 
@@ -32,7 +34,7 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/guide" element={<GuidePage />} />
             <Route path="/guide/:stepId" element={<GuideStepPage />} />
-            <Route path="/links" element={<LinksPage />} />
+            {/* <Route path="/links" element={<LinksPage />} /> */}
             <Route path="/checklists" element={<ChecklistsPage />} />
             <Route path="/contacts" element={<ContactsPage />} />
             <Route path="/phrases" element={<PhrasesPage />} />
@@ -46,6 +48,8 @@ function App() {
             <Route path="/phrases/job" element={<JobPage />} />
             <Route path="/phrases/everyday" element={<EverydayPage />} />
             <Route path="/phrases/public" element={<PublicPage />} />
+            <Route path="/admin/reviews" element={<AdminReviews />} />
+            <Route path="/review" element={<LeaveReviewPage />} />
           </Routes>
         </main>
         <Footer />

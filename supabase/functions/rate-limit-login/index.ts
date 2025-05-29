@@ -8,8 +8,8 @@ function withCorsHeaders(body: string, status = 200) {
       "Access-Control-Allow-Origin": "https://oleh-assistant.netlify.app",
       "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
       "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Content-Type": "application/json"
-    }
+      "Content-Type": "application/json",
+    },
   });
 }
 
@@ -19,34 +19,47 @@ serve(async (req) => {
   }
 
   try {
-    const { email, ip } = await req.json();
+    const { email, ip, successful } = await req.json();
+
+    if (!email || typeof successful !== "boolean") {
+      return withCorsHeaders(JSON.stringify({ error: "Missing required fields" }), 400);
+    }
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const now = new Date();
-    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+    if (!successful) {
+      // Проверка количества неудачных попыток за последние 5 минут
+      const now = new Date();
+      const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
 
-    const { count, error: selectError } = await supabase
-      .from("login_attempts")
-      .select("*", { count: "exact", head: true })
-      .eq("email", email)
-      .gte("attempted_at", fiveMinutesAgo.toISOString());
+      const { count, error: selectError } = await supabase
+        .from("login_attempts")
+        .select("*", { count: "exact", head: true })
+        .eq("email", email)
+        .eq("successful", false)
+        .gte("attempted_at", fiveMinutesAgo.toISOString());
 
-    if (selectError) {
-      console.error("Ошибка при подсчёте попыток:", selectError.message);
-      return withCorsHeaders(JSON.stringify({ error: "select error" }), 500);
+      if (selectError) {
+        console.error("Ошибка при подсчёте попыток:", selectError.message);
+        return withCorsHeaders(JSON.stringify({ error: "select error" }), 500);
+      }
+
+      if ((count ?? 0) >= 5) {
+        return withCorsHeaders(JSON.stringify({ error: "Too many attempts" }), 429);
+      }
     }
 
-    if ((count ?? 0) >= 5) {
-      return withCorsHeaders(JSON.stringify({ error: "Too many attempts" }), 429);
-    }
-
-    const { error: insertError } = await supabase
-      .from("login_attempts")
-      .insert([{ email, ip_address: ip }]);
+    // Вставка новой попытки (успешной или нет)
+    const { error: insertError } = await supabase.from("login_attempts").insert([
+      {
+        email,
+        ip_address: ip ?? null,
+        successful,
+      },
+    ]);
 
     if (insertError) {
       console.error("Ошибка вставки:", insertError.message);
