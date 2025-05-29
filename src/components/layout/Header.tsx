@@ -34,9 +34,9 @@ export default function Header() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const loadUser = async () => {
-      const { data: sessionData } = await supabase.auth.getUser();
-      const uid = sessionData?.user?.id;
+    const getInitialSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      const uid = data.session?.user?.id;
       if (!uid) return;
 
       setUserId(uid);
@@ -45,7 +45,21 @@ export default function Header() {
       setIsAdmin(isAdmin);
     };
 
-    loadUser();
+    getInitialSession();
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      const uid = session?.user?.id ?? null;
+      setUserId(uid);
+      if (uid) {
+        checkIfUserIsAdmin(uid).then(setIsAdmin);
+      } else {
+        setIsAdmin(false);
+      }
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
   const handleLogout = async () => {
