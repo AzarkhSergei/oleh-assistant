@@ -21,11 +21,13 @@ import EverydayPage from "./pages/phrases/EverydayPage";
 import PublicPage from "./pages/phrases/PublicPage";
 import AdminReviews from './pages/AdminReviews';
 import LeaveReviewPage from './pages/LeaveReviewPage';
+import { AuthProvider } from './context/AuthContext';
 
 
 
 function App() {
   return (
+    <AuthProvider>
     <Router>
       <div className="flex flex-col min-h-screen bg-gray-50">
         <Header />
@@ -55,6 +57,7 @@ function App() {
         <Footer />
       </div>
     </Router>
+    </AuthProvider>
   );
 }
 

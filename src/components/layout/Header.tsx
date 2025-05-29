@@ -14,13 +14,11 @@ import {
   User,
   ShieldCheck,
 } from 'lucide-react';
-import { supabase } from '../../supabaseClient';
-import { checkIfUserIsAdmin } from '../../utils/checkAdmin';
+import { useAuth } from '../../context/AuthContext';
 
 const navItems = [
   { to: '/', label: 'Главная', icon: <Home size={16} /> },
   { to: '/guide', label: 'Гид', icon: <BookOpen size={16} /> },
-  // { to: '/links', label: 'Ссылки', icon: <LinkIcon size={16} /> },
   { to: '/checklists', label: 'Чек-листы', icon: <ListChecks size={16} /> },
   { to: '/contacts', label: 'Контакты', icon: <Contact size={16} /> },
   { to: '/phrases', label: 'Фразы', icon: <MessageSquareText size={16} /> },
@@ -30,42 +28,11 @@ export default function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    const getInitialSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      const uid = data.session?.user?.id;
-      if (!uid) return;
-
-      setUserId(uid);
-
-      const isAdmin = await checkIfUserIsAdmin(uid);
-      setIsAdmin(isAdmin);
-    };
-
-    getInitialSession();
-
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      const uid = session?.user?.id ?? null;
-      setUserId(uid);
-      if (uid) {
-        checkIfUserIsAdmin(uid).then(setIsAdmin);
-      } else {
-        setIsAdmin(false);
-      }
-    });
-
-    return () => {
-      listener.subscription.unsubscribe();
-    };
-  }, []);
+  const { user, isAdmin } = useAuth();
 
   const handleLogout = async () => {
+    const { supabase } = await import('../../supabaseClient');
     await supabase.auth.signOut();
-    setUserId(null);
-    setIsAdmin(false);
     navigate('/');
   };
 
@@ -91,7 +58,7 @@ export default function Header() {
             </Link>
           ))}
 
-          {userId && isAdmin && (
+          {user && isAdmin && (
             <Link to="/admin/reviews" title="Модерация отзывов">
               <ShieldCheck
                 size={20}
@@ -100,7 +67,7 @@ export default function Header() {
             </Link>
           )}
 
-          {!userId ? (
+          {!user ? (
             <Link
               to="/auth"
               className="ml-4 border border-primary text-primary px-3 py-1 rounded hover:bg-primary hover:text-white transition flex items-center gap-1"
