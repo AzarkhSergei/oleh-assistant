@@ -93,11 +93,7 @@ export default function LoginRegisterPage() {
       setMessage(error ? error.message : 'Регистрация успешна! Проверьте почту.');
     } else {
       try {
-        const ipRes = await fetch("https://api.ipify.org?format=json");
-        const ipData = await ipRes.json();
-        const ip = ipData?.ip ?? "0.0.0.0";
-
-        // Проверка лимита до входа (неудачная попытка)
+        // 1. Проверка лимита (до входа)
         const preRes = await fetch('https://ajxymcztnprndgiupimi.functions.supabase.co/rate-limit-login', {
           method: 'POST',
           headers: {
@@ -105,11 +101,7 @@ export default function LoginRegisterPage() {
             'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           },
-          body: JSON.stringify({
-            email,
-            ip,
-            successful: false,
-          }),
+          body: JSON.stringify({ email, successful: false }),
         });
 
         const preResult = await preRes.json();
@@ -118,10 +110,10 @@ export default function LoginRegisterPage() {
           return;
         }
 
-        // Попытка входа
+        // 2. Попытка входа
         const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-        // Фиксация результата (успешно или нет)
+        // 3. Фиксация результата
         await fetch('https://ajxymcztnprndgiupimi.functions.supabase.co/rate-limit-login', {
           method: 'POST',
           headers: {
@@ -129,11 +121,7 @@ export default function LoginRegisterPage() {
             'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           },
-          body: JSON.stringify({
-            email,
-            ip,
-            successful: !error,
-          }),
+          body: JSON.stringify({ email, successful: !error }),
         });
 
         if (error) {
@@ -169,9 +157,7 @@ export default function LoginRegisterPage() {
           autoComplete="off"
           className="w-full border px-3 py-2 rounded"
         />
-        {emailError && (
-          <p className="text-red-600 text-sm mt-1">{emailError}</p>
-        )}
+        {emailError && <p className="text-red-600 text-sm mt-1">{emailError}</p>}
 
         <input
           type="password"
@@ -185,23 +171,15 @@ export default function LoginRegisterPage() {
 
         {!isLogin && (
           <ul className="text-sm list-disc list-inside">
-            <li className={isLength ? "text-green-600" : "text-red-600"}>Минимум 8 символов</li>
-            <li className={hasUpper ? "text-green-600" : "text-red-600"}>Хотя бы одна заглавная буква</li>
-            <li className={hasDigit ? "text-green-600" : "text-red-600"}>Хотя бы одна цифра</li>
+            <li className={isLength ? 'text-green-600' : 'text-red-600'}>Минимум 8 символов</li>
+            <li className={hasUpper ? 'text-green-600' : 'text-red-600'}>Хотя бы одна заглавная буква</li>
+            <li className={hasDigit ? 'text-green-600' : 'text-red-600'}>Хотя бы одна цифра</li>
           </ul>
         )}
 
-        <ReCAPTCHA
-          ref={recaptchaRef}
-          sitekey={siteKey}
-          onChange={handleCaptchaChange}
-        />
+        <ReCAPTCHA ref={recaptchaRef} sitekey={siteKey} onChange={handleCaptchaChange} />
 
-        <button
-          type="submit"
-          className="w-full bg-primary text-white py-2 rounded disabled:opacity-50"
-          disabled={!!emailError}
-        >
+        <button type="submit" className="w-full bg-primary text-white py-2 rounded disabled:opacity-50" disabled={!!emailError}>
           {isLogin ? 'Войти' : 'Зарегистрироваться'}
         </button>
       </form>

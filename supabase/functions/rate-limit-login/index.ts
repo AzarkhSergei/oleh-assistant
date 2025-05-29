@@ -19,7 +19,8 @@ serve(async (req) => {
   }
 
   try {
-    const { email, ip, successful } = await req.json();
+    const { email, successful } = await req.json();
+    const ip = req.headers.get("x-forwarded-for") ?? "0.0.0.0";
 
     if (!email || typeof successful !== "boolean") {
       return withCorsHeaders(JSON.stringify({ error: "Missing required fields" }), 400);
@@ -56,7 +57,7 @@ serve(async (req) => {
     const { error: insertError } = await supabase.from("login_attempts").insert([
       {
         email,
-        ip_address: ip ?? null,
+        ip_address: ip,
         successful,
       },
     ]);
