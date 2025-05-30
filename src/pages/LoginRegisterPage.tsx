@@ -147,6 +147,7 @@ export default function LoginRegisterPage() {
       <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
         <input
           type="email"
+          id="email-input"
           placeholder="Email"
           value={email}
           onChange={(e) => {
@@ -162,6 +163,7 @@ export default function LoginRegisterPage() {
 
         <input
           type="password"
+          id="password-input"
           placeholder="Пароль"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -171,16 +173,18 @@ export default function LoginRegisterPage() {
         />
 
         {!isLogin && (
-          <ul className="text-sm list-disc list-inside">
+          <ul id="password-rules" className="text-sm list-disc list-inside">
             <li className={isLength ? 'text-green-600' : 'text-red-600'}>Минимум 8 символов</li>
             <li className={hasUpper ? 'text-green-600' : 'text-red-600'}>Хотя бы одна заглавная буква</li>
             <li className={hasDigit ? 'text-green-600' : 'text-red-600'}>Хотя бы одна цифра</li>
           </ul>
         )}
 
-        <ReCAPTCHA ref={recaptchaRef} sitekey={siteKey} onChange={handleCaptchaChange} />
+        <div id="recaptcha-container">
+          <ReCAPTCHA ref={recaptchaRef} sitekey={siteKey} onChange={handleCaptchaChange} />
+        </div>
 
-        <button type="submit" className="w-full bg-primary text-white py-2 rounded disabled:opacity-50" disabled={!!emailError}>
+        <button id="submit-button" type="submit" className="w-full bg-primary text-white py-2 rounded disabled:opacity-50" disabled={!!emailError}>
           {isLogin ? 'Войти' : 'Зарегистрироваться'}
         </button>
       </form>
@@ -189,6 +193,7 @@ export default function LoginRegisterPage() {
         {isLogin ? 'Нет аккаунта?' : 'Уже есть аккаунт?'}{' '}
         <button
           type="button"
+          id="toggle-auth-button"
           onClick={() => {
             setIsLogin(!isLogin);
             setMessage('');
@@ -204,7 +209,7 @@ export default function LoginRegisterPage() {
       </p>
 
       {message && (
-        <p className={`mt-4 text-center text-sm ${message.includes('успеш') || message.includes('вошли') ? 'text-green-600' : 'text-red-600'}`}>
+        <p id="auth-message" className={`mt-4 text-center text-sm ${message.includes('успеш') || message.includes('вошли') ? 'text-green-600' : 'text-red-600'}`}>
           {message}
         </p>
       )}
