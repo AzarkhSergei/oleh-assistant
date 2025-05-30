@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { CheckCircle, Circle } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { supabase } from '../supabaseClient';
+import { useEffect, useState } from "react";
+import { CheckCircle, Circle } from "lucide-react";
+import { Link } from "react-router-dom";
+import { supabase } from "../supabaseClient";
+import { useAuth } from "../context/AuthContext";
 
 interface ChecklistItem {
   id: string;
@@ -19,16 +20,8 @@ const checklistItems: ChecklistItem[] = [
 ];
 
 export default function ChecklistsPage() {
+  const { user } = useAuth();
   const [completed, setCompleted] = useState<Record<string, boolean>>({});
-  const [user, setUser] = useState<any>(null);
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      setUser(data.user);
-    };
-    fetchUser();
-  }, []);
 
   useEffect(() => {
     const fetchProgress = async () => {

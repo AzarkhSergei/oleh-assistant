@@ -1,20 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
+import { useAuth } from '../context/AuthContext';
+import type { User } from '@supabase/supabase-js';
 
 export default function AccountPage() {
-  const [user, setUser] = useState<any>(null);
+  const { user } = useAuth();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
-    });
-  }, []);
-
-  // Подсказки по требованиям пароля
   const isLength = newPassword.length >= 8;
   const hasUpper = /[A-Z]/.test(newPassword);
   const hasDigit = /[0-9]/.test(newPassword);
@@ -26,6 +21,11 @@ export default function AccountPage() {
 
   const handleChangePassword = async () => {
     setMessage('');
+
+    if (!user?.email) {
+      setMessage('Ошибка: пользователь не найден.');
+      return;
+    }
 
     if (!validatePassword(newPassword)) {
       setMessage('Пароль должен быть не менее 8 символов, содержать заглавную букву и цифру.');
@@ -42,7 +42,6 @@ export default function AccountPage() {
       return;
     }
 
-    // Проверка текущего пароля (Supabase требует аутентификацию)
     const { error: loginError } = await supabase.auth.signInWithPassword({
       email: user.email,
       password: currentPassword,
@@ -98,11 +97,11 @@ export default function AccountPage() {
         />
 
         <ul className="text-sm list-disc list-inside mb-2">
-          <li className={isLength ? "text-green-600" : "text-red-600"}>Минимум 8 символов</li>
-          <li className={hasUpper ? "text-green-600" : "text-red-600"}>Хотя бы одна заглавная буква</li>
-          <li className={hasDigit ? "text-green-600" : "text-red-600"}>Хотя бы одна цифра</li>
-          <li className={notSameAsCurrent ? "text-green-600" : "text-red-600"}>Не совпадает с текущим паролем</li>
-          <li className={passwordsMatch ? "text-green-600" : "text-red-600"}>Пароли совпадают</li>
+          <li className={isLength ? 'text-green-600' : 'text-red-600'}>Минимум 8 символов</li>
+          <li className={hasUpper ? 'text-green-600' : 'text-red-600'}>Хотя бы одна заглавная буква</li>
+          <li className={hasDigit ? 'text-green-600' : 'text-red-600'}>Хотя бы одна цифра</li>
+          <li className={notSameAsCurrent ? 'text-green-600' : 'text-red-600'}>Не совпадает с текущим паролем</li>
+          <li className={passwordsMatch ? 'text-green-600' : 'text-red-600'}>Пароли совпадают</li>
         </ul>
 
         <button
@@ -112,11 +111,7 @@ export default function AccountPage() {
           Сменить пароль
         </button>
         {message && (
-          <p
-            className={`mt-2 text-center text-sm ${
-              message.includes('успешно') ? 'text-green-600' : 'text-red-600'
-            }`}
-          >
+          <p className={`mt-2 text-center text-sm ${message.includes('успешно') ? 'text-green-600' : 'text-red-600'}`}>
             {message}
           </p>
         )}

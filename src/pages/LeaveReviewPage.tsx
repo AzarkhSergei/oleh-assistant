@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
-import { supabase } from "../supabaseClient";
+import React, { useEffect, useState } from "react";
 import { Star } from "lucide-react";
+import { supabase } from "../supabaseClient";
+import { useAuth } from "../context/AuthContext";
 
 export default function LeaveReview() {
-  const [userId, setUserId] = useState<string | null>(null);
+  const { user } = useAuth();
   const [hasReview, setHasReview] = useState(false);
   const [name, setName] = useState("");
   const [text, setText] = useState("");
@@ -14,20 +15,15 @@ export default function LeaveReview() {
 
   useEffect(() => {
     const checkReview = async () => {
-      const { data: sessionData } = await supabase.auth.getUser();
-      const uid = sessionData?.user?.id;
-
-      if (!uid) {
+      if (!user?.id) {
         setLoading(false);
         return;
       }
 
-      setUserId(uid);
-
       const { data, error } = await supabase
         .from("reviews")
         .select("id")
-        .eq("user_id", uid)
+        .eq("user_id", user.id)
         .maybeSingle();
 
       if (error) console.error("Ошибка при проверке отзыва", error);
@@ -37,14 +33,14 @@ export default function LeaveReview() {
     };
 
     checkReview();
-  }, []);
+  }, [user]);
 
   const handleSubmit = async () => {
-    if (!userId || !name.trim() || !text.trim()) return;
+    if (!user?.id || !name.trim() || !text.trim()) return;
 
     const { error } = await supabase.from("reviews").insert([
       {
-        user_id: userId,
+        user_id: user.id,
         name,
         text,
         rating,
@@ -57,7 +53,6 @@ export default function LeaveReview() {
     if (error) {
       console.error("Ошибка при добавлении отзыва", error);
     } else {
-      // Обновляем флаги
       setSuccess(true);
       setHasReview(true);
     }

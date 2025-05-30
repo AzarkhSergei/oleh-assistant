@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Home,
@@ -49,9 +49,8 @@ export default function Header() {
             <Link
               key={to}
               to={to}
-              className={`inline-flex items-center gap-1 hover:text-primary transition-colors duration-200 ${
-                location.pathname === to ? 'text-primary font-medium' : 'text-gray-700'
-              }`}
+              className={`inline-flex items-center gap-1 hover:text-primary transition-colors duration-200 ${location.pathname === to ? 'text-primary font-medium' : 'text-gray-700'
+                }`}
             >
               {icon}
               {label}

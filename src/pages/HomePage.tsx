@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
+import { useAuth } from '../context/AuthContext';
 
 interface Review {
   id: string;
@@ -21,11 +22,10 @@ interface Review {
 }
 
 export default function HomePage() {
-  const [user, setUser] = useState<any>(null);
+  const { user } = useAuth();
   const [reviews, setReviews] = useState<Review[]>([]);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user ?? null));
     loadReviews();
   }, []);
 
@@ -104,9 +104,7 @@ export default function HomePage() {
             Оставить отзыв
           </Link>
         ) : (
-          <span
-            className="text-gray-400 text-sm cursor-not-allowed relative group flex items-center"
-          >
+          <span className="text-gray-400 text-sm cursor-not-allowed relative group flex items-center">
             <Plus size={18} className="mr-1" />
             Оставить отзыв
             <span className="absolute -top-7 left-0 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition">
@@ -137,12 +135,12 @@ export default function HomePage() {
               </div>
 
               <div className="text-sm text-gray-600 font-medium">
-                — {r.name}, {new Date(r.created_at).toLocaleString('ru-RU', 
-                {day: '2-digit', 
-                month: '2-digit', 
-                year: 'numeric', 
-                hour: '2-digit', 
-                minute: '2-digit',
+                — {r.name}, {new Date(r.created_at).toLocaleString('ru-RU', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
                 })}
               </div>
             </div>

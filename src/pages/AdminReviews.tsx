@@ -1,63 +1,21 @@
 import { useEffect, useState } from "react";
-import { supabase } from "../supabaseClient";
 import { Pencil } from "lucide-react";
-
-interface Review {
-  id: string;
-  name: string;
-  text: string;
-  rating: number;
-  created_at: string;
-  approved: boolean;
-  edited: boolean;
-  photo_url?: string;
-  user_id?: string;
-}
+import { useAuth } from "../context/AuthContext";
+import { useReviews, Review } from "../hooks/useReviews";
 
 export default function AdminReviews() {
-  const [userId, setUserId] = useState<string | null>(null);
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { user, isAdmin } = useAuth();
+  const {
+    reviews,
+    loadReviews,
+    approveReview,
+    editReview,
+  } = useReviews();
   const [editState, setEditState] = useState<Review | null>(null);
 
   useEffect(() => {
-    const load = async () => {
-      const { data: sessionData } = await supabase.auth.getUser();
-      const uid = sessionData?.user?.id;
-      if (!uid) return;
-
-      setUserId(uid);
-
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("is_admin")
-        .eq("id", uid)
-        .single();
-
-      if (!profileData?.is_admin) {
-        alert("Доступ только для админов");
-        return;
-      }
-
-      setIsAdmin(true);
-
-      const { data: reviewsData } = await supabase
-        .from("reviews")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      setReviews(reviewsData || []);
-    };
-
-    load();
-  }, []);
-
-  const approveReview = async (id: string) => {
-    await supabase.from("reviews").update({ approved: true }).eq("id", id);
-    setReviews((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, approved: true } : r))
-    );
-  };
+    if (user && isAdmin) loadReviews();
+  }, [user, isAdmin, loadReviews]);
 
   const handleEdit = (review: Review) => {
     let dateForInput = "";
@@ -70,48 +28,20 @@ export default function AdminReviews() {
       dateForInput = "";
     }
 
-    setEditState({
-      ...review,
-      created_at: dateForInput,
-    });
+    setEditState({ ...review, created_at: dateForInput });
   };
 
   const handleSave = async () => {
     if (!editState) return;
-
-    const dateToSave = new Date(editState.created_at);
-
-    if (isNaN(dateToSave.getTime())) {
-      alert("Некорректная дата");
-      return;
-    }
-
-    await supabase
-      .from("reviews")
-      .update({
-        name: editState.name,
-        text: editState.text,
-        rating: editState.rating,
-        created_at: dateToSave.toISOString(),
-        edited: true,
-      })
-      .eq("id", editState.id);
-
-    setEditState(null);
-
-    const { data } = await supabase
-      .from("reviews")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    setReviews(data || []);
+    const success = await editReview(editState);
+    if (success) setEditState(null);
   };
 
   const handleCancel = () => {
     setEditState(null);
   };
 
-  if (!userId || !isAdmin) {
+  if (!user || !isAdmin) {
     return <p className="text-center mt-10 text-gray-500">Загрузка...</p>;
   }
 
@@ -133,7 +63,9 @@ export default function AdminReviews() {
                     className="border rounded p-1 mb-2 w-full"
                     value={editState.name}
                     onChange={(e) =>
-                      setEditState((prev) => prev && { ...prev, name: e.target.value })
+                      setEditState((prev: Review | null) =>
+                        prev ? { ...prev, name: e.target.value } : prev
+                      )
                     }
                   />
                   <input
@@ -141,7 +73,7 @@ export default function AdminReviews() {
                     className="border rounded p-1 mb-2 w-full"
                     value={editState.created_at}
                     onChange={(e) =>
-                      setEditState((prev) =>
+                      setEditState((prev: Review | null) =>
                         prev ? { ...prev, created_at: e.target.value } : prev
                       )
                     }
@@ -150,13 +82,17 @@ export default function AdminReviews() {
                     className="border rounded p-1 mb-2 w-full"
                     value={editState.text}
                     onChange={(e) =>
-                      setEditState((prev) => prev && { ...prev, text: e.target.value })
+                      setEditState((prev: Review | null) =>
+                        prev ? { ...prev, text: e.target.value } : prev
+                      )
                     }
                   />
                   <select
                     value={editState.rating}
                     onChange={(e) =>
-                      setEditState((prev) => prev && { ...prev, rating: Number(e.target.value) })
+                      setEditState((prev: Review | null) =>
+                        prev ? { ...prev, rating: Number(e.target.value) } : prev
+                      )
                     }
                     className="border p-1 rounded mb-2"
                   >
