@@ -1,22 +1,22 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-function withCorsHeaders(body: string, status = 200) {
-    return new Response(body, {
-      status,
-      headers: {
-        "Access-Control-Allow-Origin": req.headers.get("origin") ?? "*",
-        "Vary": "Origin",
-        "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Content-Type": "application/json"
-      }
-    });
-  }  
+function withCorsHeaders(body: string, status = 200, req?: Request) {
+  return new Response(body, {
+    status,
+    headers: {
+      "Access-Control-Allow-Origin": req?.headers.get("origin") ?? "*",
+      "Vary": "Origin",
+      "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Content-Type": "application/json"
+    }
+  });
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return withCorsHeaders("ok");
+    return withCorsHeaders("ok", 200, req);
   }
 
   try {
@@ -25,7 +25,7 @@ serve(async (req) => {
     const ip = req.headers.get("x-forwarded-for") ?? "0.0.0.0";
 
     if (!email) {
-      return withCorsHeaders(JSON.stringify({ error: "Missing email" }), 400);
+      return withCorsHeaders(JSON.stringify({ error: "Missing email" }), 400, req);
     }
 
     const supabase = createClient(
@@ -33,7 +33,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Проверка лимита
+    // Проверка лимита попыток
     const now = new Date();
     const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
 
@@ -46,21 +46,20 @@ serve(async (req) => {
 
     if (countError) {
       console.error("Ошибка при подсчёте попыток:", countError.message);
-      return withCorsHeaders(JSON.stringify({ error: "select error" }), 500);
+      return withCorsHeaders(JSON.stringify({ error: "select error" }), 500, req);
     }
 
     if ((count ?? 0) >= 5) {
-      return withCorsHeaders(JSON.stringify({ error: "Too many attempts" }), 429);
+      return withCorsHeaders(JSON.stringify({ error: "Too many attempts" }), 429, req);
     }
 
-    // Только проверка — не пишем в таблицу
+    // Если только проверка — не записываем
     if (checkOnly) {
-      return withCorsHeaders(JSON.stringify({ allowed: true }), 200);
+      return withCorsHeaders(JSON.stringify({ allowed: true }), 200, req);
     }
 
-    // Проверка перед записью
     if (typeof successful !== "boolean") {
-      return withCorsHeaders(JSON.stringify({ error: "Missing 'successful' boolean" }), 400);
+      return withCorsHeaders(JSON.stringify({ error: "Missing 'successful' boolean" }), 400, req);
     }
 
     const { error: insertError } = await supabase.from("login_attempts").insert([
@@ -74,12 +73,12 @@ serve(async (req) => {
 
     if (insertError) {
       console.error("Ошибка вставки:", insertError.message);
-      return withCorsHeaders(JSON.stringify({ error: "insert error" }), 500);
+      return withCorsHeaders(JSON.stringify({ error: "insert error" }), 500, req);
     }
 
-    return withCorsHeaders(JSON.stringify({ success: true }), 200);
+    return withCorsHeaders(JSON.stringify({ success: true }), 200, req);
   } catch (err) {
     console.error("Ошибка выполнения функции:", err);
-    return withCorsHeaders(JSON.stringify({ error: "server error" }), 500);
+    return withCorsHeaders(JSON.stringify({ error: "server error" }), 500, req);
   }
 });
